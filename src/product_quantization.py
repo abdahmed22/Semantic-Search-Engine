@@ -8,11 +8,12 @@ class ProductQuantization:
     def __init__(self, d: int, m: int, k: int,
                  centroids_path="./assets/indexes/product_quantization/centroids",
                  codebook_path="./assets/indexes/product_quantization/codebook",
-                 train_limit=10**3, iterations=100, new_index=True) -> None:
+                 train_limit=10**6, iterations=100, new_index=True) -> None:
         self.D = d                                              # initial vector dimensions
         self.M = m                                              # new vector dimensions ( # of sub vectors)
         self.D_ = d // m                                        # sub vectors dimensions
         self.K = k                                              # number of clusters
+
         self.train_limit = train_limit
         self.iterations = iterations
 
@@ -25,7 +26,7 @@ class ProductQuantization:
             if os.path.exists(self.codebook_path):
                 os.remove(self.codebook_path)
 
-    def generate_product_quantization(self, database: np.ndarray):
+    def generate_product_quantization(self, database: np.ndarray) -> np.ndarray:
         training_data, predicting_data = database[:self.train_limit], database[self.train_limit:]
 
         centroids = np.zeros((self.M, self.K, self.D_))
@@ -44,6 +45,8 @@ class ProductQuantization:
 
         np.savetxt(self.centroids_path, self.centroids.reshape(self.M * self.K, self.D_))
         np.savetxt(self.codebook_path, self.code_book, fmt="%d")
+
+        return self.code_book
 
     def load_centroids(self):
         self.centroids = np.loadtxt(self.centroids_path).reshape((self.M, self.K, self.d))

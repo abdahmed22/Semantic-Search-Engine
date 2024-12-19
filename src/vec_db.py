@@ -3,6 +3,7 @@ import numpy as np
 import os
 
 from product_quantization import ProductQuantization
+from inverted_flat_index import InvertedFlatIndex
 
 DB_SEED_NUMBER = 42
 ELEMENT_SIZE = np.dtype(np.float32).itemsize
@@ -10,11 +11,14 @@ DIMENSION = 70
 
 
 class VectorDataBase:
-    def __init__(self, d: int, m: int, k: int, database_file_path="./assets/databases/saved_db_1m.csv",
+    def __init__(self, d: int, m: int, pqk: int, ivfk: int, probes: int,
+                 database_file_path="./assets/databases/saved_db_1m.csv",
                  new_db=True, db_size=None) -> None:
         self.D = d
         self.M = m
-        self.K = k
+        self.PQK = pqk
+        self.IVFK = ivfk
+        self.Probes = probes
         self.db_path = database_file_path
         self.database_size = db_size
 
@@ -82,7 +86,10 @@ class VectorDataBase:
         return cosine_similarity
 
     def _build_index(self):
-        pq = ProductQuantization(self.D, self.M, self.K)
+        pq = ProductQuantization(self.D, self.M, self.PQK)
+        ivf = InvertedFlatIndex(self.D, self.IVFK, self.Probes)
 
-        pq.generate_product_quantization(self.get_all_rows())
+        database = self.get_all_rows()
+        codebook = pq.generate_product_quantization(database)
+        ivf.generate_inverted_flat_index(database, codebook)
 

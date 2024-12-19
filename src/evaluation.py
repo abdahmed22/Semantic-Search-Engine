@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import List
 
 from vec_db import VectorDataBase
-from product_quantization import ProductQuantization
+
 
 
 @dataclass
@@ -59,7 +59,7 @@ def eval(results: List[Result]):
 
 
 if __name__ == "__main__":
-    db = VectorDataBase(d=70, m=14, k=2**8, db_size=10 ** 4)
+    db = VectorDataBase(d=70, m=14, pqk=2**8, ivfk=2**8, probes=64, db_size=10 ** 6)
 
     # all_db = db.get_all_rows()
     #
