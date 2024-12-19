@@ -1,0 +1,53 @@
+from typing import Tuple
+import numpy as np
+import os
+from scipy.cluster.vq import kmeans2, vq
+
+
+class ProductQuantization:
+    def __init__(self, d: int, m: int, k: int,
+                 centroids_path="./assets/indexes/product_quantization/centroids",
+                 codebook_path="./assets/indexes/product_quantization/codebook",
+                 train_limit=10**3, iterations=100, new_index=True) -> None:
+        self.D = d                                              # initial vector dimensions
+        self.M = m                                              # new vector dimensions ( # of sub vectors)
+        self.D_ = d // m                                        # sub vectors dimensions
+        self.K = k                                              # number of clusters
+        self.train_limit = train_limit
+        self.iterations = iterations
+
+        self.centroids_path = centroids_path
+        self.codebook_path = codebook_path
+
+        if new_index:
+            if os.path.exists(self.centroids_path):
+                os.remove(self.centroids_path)
+            if os.path.exists(self.codebook_path):
+                os.remove(self.codebook_path)
+
+    def generate_product_quantization(self, database: np.ndarray):
+        training_data, predicting_data = database[:self.train_limit], database[self.train_limit:]
+
+        centroids = np.zeros((self.M, self.K, self.D_))
+        code_book = np.zeros((self.M, database.shape[0]), dtype=np.uint32)         # uint32 instead of float64
+
+        for i in range(self.M):
+            centroids[i, :, :], code_book[i, :self.train_limit] = kmeans2(training_data[:, i * self.D_: (i + 1) * self.D_], self.K,
+                                                         minit='points', iter=self.iterations)
+
+        if predicting_data.shape[0] > 0:
+            for i in range(self.M):
+                code_book[i, self.train_limit:], _ = vq(predicting_data[:, i * self.D_: (i + 1) * self.D_], centroids[i])
+
+        self.centroids = centroids
+        self.code_book = code_book.T
+
+        np.savetxt(self.centroids_path, self.centroids.reshape(self.M * self.K, self.D_))
+        np.savetxt(self.codebook_path, self.code_book, fmt="%d")
+
+
+
+
+
+
+

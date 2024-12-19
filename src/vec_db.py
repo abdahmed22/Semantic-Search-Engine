@@ -1,30 +1,31 @@
-from typing import Dict, List, Annotated
+from typing import Annotated
 import numpy as np
 import os
+
+from product_quantization import ProductQuantization
 
 DB_SEED_NUMBER = 42
 ELEMENT_SIZE = np.dtype(np.float32).itemsize
 DIMENSION = 70
 
 
-class VecDB:
-    def __init__(self, database_file_path="../assets/dataBases/saved_db_15m.csv",
-                 index_file_path="../assets/indexes/index.dat",
+class VectorDataBase:
+    def __init__(self, d: int, m: int, k: int, database_file_path="./assets/databases/saved_db_1m.csv",
                  new_db=True, db_size=None) -> None:
-
+        self.D = d
+        self.M = m
+        self.K = k
         self.db_path = database_file_path
-        self.index_path = index_file_path
+        self.database_size = db_size
+
         if new_db:
-            if db_size is None:
-                raise ValueError("You need to provide the size of the database")
-            # delete the old DB file if exists
             if os.path.exists(self.db_path):
                 os.remove(self.db_path)
-            self.generate_database(db_size)
+            self.generate_database()
 
-    def generate_database(self, size: int) -> None:
+    def generate_database(self) -> None:
         rng = np.random.default_rng(DB_SEED_NUMBER)
-        vectors = rng.random((size, DIMENSION), dtype=np.float32)
+        vectors = rng.random((self.database_size, DIMENSION), dtype=np.float32)
         self._write_vectors_to_file(vectors)
         self._build_index()
 
@@ -81,7 +82,7 @@ class VecDB:
         return cosine_similarity
 
     def _build_index(self):
+        pq = ProductQuantization(self.D, self.M, self.K)
 
-        pass
-
+        pq.generate_product_quantization(self.get_all_rows())
 
