@@ -49,7 +49,7 @@ class ProductQuantization:
         return self.code_book
 
     def load_centroids(self):
-        self.centroids = np.loadtxt(self.centroids_path).reshape((self.M, self.K, self.d))
+        self.centroids = np.loadtxt(self.centroids_path).reshape((self.M, self.K, self.D_))
 
     def load_codebook(self):
         self.code_book = np.loadtxt(self.codebook_path)

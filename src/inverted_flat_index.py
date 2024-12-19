@@ -1,7 +1,10 @@
+from typing import Annotated
 import numpy as np
 from scipy.cluster.vq import kmeans2, vq
 import os
 
+
+DIMENSION = 70
 
 class InvertedFlatIndex:
 
@@ -49,10 +52,27 @@ class InvertedFlatIndex:
                 post_cluster = np.vstack((pre_cluster, cluster))
                 np.savetxt(self.clusters_path + f"/cluster{i}", post_cluster, fmt="%d")
 
+    def load_centroids(self):
+        self.centroids = np.loadtxt(self.centroids_path)
+
+    def search(self, query: Annotated[np.ndarray, (1, DIMENSION)], m: int):
+        distances = self._compute_cosine_similarity(self.centroids, query[0])
+        nearest_clusters = np.argsort(distances)[-self.K_:]
+
+        candidates = np.empty((0, m + 1))
+        for i in nearest_clusters:
+            loaded_cluster = np.loadtxt(self.clusters_path + f"/cluster{int(i)}", dtype=int)
+            candidates = np.append(candidates, loaded_cluster, axis=0)
+
+        candidates = candidates.astype(int)
+
+        return candidates
 
     def _compute_cosine_similarity(self, vec1, vec2):
-        dot_product = np.dot(vec1, vec2)
-        norm_vec1 = np.linalg.norm(vec1)
+        dot_product = vec1 @ vec2.T
+        norm_vec1 = np.linalg.norm(vec1, axis=1)
         norm_vec2 = np.linalg.norm(vec2)
-        cosine_similarity = dot_product / (norm_vec1 * norm_vec2)
-        return cosine_similarity
+        norm = norm_vec1 * norm_vec2
+        distances = dot_product / norm
+
+        return distances

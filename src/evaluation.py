@@ -59,7 +59,10 @@ def eval(results: List[Result]):
 
 
 if __name__ == "__main__":
-    db = VectorDataBase(d=70, m=14, pqk=2**8, ivfk=2**8, probes=64, db_size=10 ** 6)
+    db = VectorDataBase(d=70, m=7, pqk=2**8, ivfk=2**9, probes=14, db_size=10 ** 3)
+
+    query = np.random.random((1, 70))
+    db.retrieve(query, 5)
 
     # all_db = db.get_all_rows()
     #

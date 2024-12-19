@@ -12,7 +12,7 @@ DIMENSION = 70
 
 class VectorDataBase:
     def __init__(self, d: int, m: int, pqk: int, ivfk: int, probes: int,
-                 database_file_path="./assets/databases/saved_db_1m.csv",
+                 database_file_path="./assets/databases/saved_db_100k.csv",
                  new_db=True, db_size=None) -> None:
         self.D = d
         self.M = m
@@ -21,6 +21,9 @@ class VectorDataBase:
         self.Probes = probes
         self.db_path = database_file_path
         self.database_size = db_size
+
+        self.pq = ProductQuantization(self.D, self.M, self.PQK)
+        self.ivf = InvertedFlatIndex(self.D, self.IVFK, self.Probes)
 
         if new_db:
             if os.path.exists(self.db_path):
@@ -67,16 +70,14 @@ class VectorDataBase:
         return np.array(vectors)
 
     def retrieve(self, query: Annotated[np.ndarray, (1, DIMENSION)], top_k=5):
-        scores = []
-        num_records = self._get_num_records()
-        # here we assume that the row number is the ID of each vector
-        for row_num in range(num_records):
-            vector = self.get_one_row(row_num)
-            score = self._cal_score(query, vector)
-            scores.append((score, row_num))
-        # here we assume that if two rows have the same score, return the lowest ID
-        scores = sorted(scores, reverse=True)[:top_k]
-        return [s[1] for s in scores]
+        self.pq.load_centroids()
+        self.pq.load_codebook()
+        self.ivf.load_centroids()
+
+        quantized_vectors = self.ivf.search(query, self.pq.M)
+        #vectors = self.pq.search(quantized_vectors)
+
+        #return vectors
 
     def _cal_score(self, vec1, vec2):
         dot_product = np.dot(vec1, vec2)
@@ -86,10 +87,7 @@ class VectorDataBase:
         return cosine_similarity
 
     def _build_index(self):
-        pq = ProductQuantization(self.D, self.M, self.PQK)
-        ivf = InvertedFlatIndex(self.D, self.IVFK, self.Probes)
-
         database = self.get_all_rows()
-        codebook = pq.generate_product_quantization(database)
-        ivf.generate_inverted_flat_index(database, codebook)
+        codebook = self.pq.generate_product_quantization(database)
+        self.ivf.generate_inverted_flat_index(database, codebook)
 
